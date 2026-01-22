@@ -249,6 +249,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           n_peptides = 1,
           combined_pvalue = one_tailed_pval,
           mean_log2FC = domain_peptides$log2FC[1],
+          median_log2FC = domain_peptides$log2FC[1],
           method = "single_peptide",
           stringsAsFactors = FALSE
         )
@@ -295,6 +296,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             n_peptides = 1,
             combined_pvalue = one_tailed_pval,
             mean_log2FC = up_peptides$log2FC[1],
+            median_log2FC = up_peptides$log2FC[1],
             method = "single_peptide",
             stringsAsFactors = FALSE
           )
@@ -349,7 +351,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 Direction = "UP",
                 n_peptides = n_up,
                 combined_pvalue = ebm_result_up$P_test,
-                mean_log2FC = mean(up_peptides$log2FC[is.finite(up_peptides$log2FC)], na.rm = TRUE),
+                mean_log2FC = mean(up_peptides$log2FC),
+                median_log2FC = median(up_peptides$log2FC),
                 method = "EBM",
                 stringsAsFactors = FALSE
               )
@@ -375,7 +378,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 Direction = "UP",
                 n_peptides = n_up,
                 combined_pvalue = cauchy_combined_up,
-                mean_log2FC = mean(up_peptides$log2FC[is.finite(up_peptides$log2FC)], na.rm = TRUE),
+                mean_log2FC = mean(up_peptides$log2FC),
+                median_log2FC = median(up_peptides$log2FC),
                 method = "cauchy",
                 stringsAsFactors = FALSE
               )
@@ -409,6 +413,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             n_peptides = 1,
             combined_pvalue = one_tailed_pval,
             mean_log2FC = down_peptides$log2FC[1],
+            median_log2FC = down_peptides$log2FC[1],
             method = "single_peptide",
             stringsAsFactors = FALSE
           )
@@ -461,7 +466,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 Direction = "DOWN",
                 n_peptides = n_down,
                 combined_pvalue = ebm_result_down$P_test,
-                mean_log2FC = mean(down_peptides$log2FC[is.finite(down_peptides$log2FC)], na.rm = TRUE),
+                mean_log2FC = mean(down_peptides$log2FC),
+                median_log2FC = median(down_peptides$log2FC),
                 method = "EBM",
                 stringsAsFactors = FALSE
               )
@@ -487,7 +493,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 Direction = "DOWN",
                 n_peptides = n_down,
                 combined_pvalue = cauchy_combined_down,
-                mean_log2FC = mean(down_peptides$log2FC[is.finite(down_peptides$log2FC)], na.rm = TRUE),
+                mean_log2FC = mean(down_peptides$log2FC),
+                median_log2FC = median(down_peptides$log2FC),
                 method = "cauchy",
                 stringsAsFactors = FALSE
               )
