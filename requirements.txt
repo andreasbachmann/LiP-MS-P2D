@@ -1,0 +1,8 @@
+cmake
+zlib
+pkg-config
+r-base=4.5.1
+r-tidyverse
+r-data.table
+r-r.utils
+r-devtools
