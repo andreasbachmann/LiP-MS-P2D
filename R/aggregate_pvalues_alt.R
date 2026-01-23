@@ -56,7 +56,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
   # output mapping stats
   cat(sprintf(
     " > peptides per %s: mean=%.1f, median=%d, max=%d\n",
-    tolower(group_col), mean(pep_per_domain$n), median(pep_per_domain$n), max(pep_per_domain$n)
+    group_col, mean(pep_per_domain$n), median(pep_per_domain$n), max(pep_per_domain$n)
   ))
   cat(sprintf(
     " > mapped %d / %d peptides (%.1f%% unmapped)\n",
@@ -150,9 +150,10 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     }
     
     if (groups_lost_no_pvals > 0) {
-      cat(sprintf("%-42s %27s\n", sprintf(" > %ss lost:", group_col), groups_lost_no_pvals))
+      cat(sprintf("%-42s %27d\n", sprintf(" > %s lost:", group_col), groups_lost_no_pvals))
     }
-    cat(sprintf("%-42s %27s\n", sprintf(" > %ss to process:", tolower(group_col)), n_groups))
+    cat(sprintf("%-42s %27d\n", sprintf(" > %s to process:", group_col), n_groups))
+
 
     # prepare replicate data
     contrast_replicates <- replicate_data %>%
