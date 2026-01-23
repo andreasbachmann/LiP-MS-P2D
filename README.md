@@ -37,7 +37,7 @@ Verify the installation with test data:
 
 ```bash
 # Run MSstatsLiP processing on test data
-Rscript scripts/msstatslip_run.R --test
+Rscript scripts/msstatslip.R --test
 
 # Run domain-level aggregation on test data
 Rscript scripts/combine.R --test
