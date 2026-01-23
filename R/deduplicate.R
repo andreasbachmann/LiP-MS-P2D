@@ -11,7 +11,7 @@ deduplicate_results <- function(results) {
     ) %>%
     select(
       DomainID, DomainName, ProteinName, Label, Direction,
-      n_peptides, combined_pvalue, mean_log2FC, method
+      n_peptides, combined_pvalue, mean_log2FC, median_log2FC, method
     ) %>%
     arrange(combined_pvalue) %>%
     as.data.table()
