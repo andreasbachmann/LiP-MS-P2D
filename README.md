@@ -19,8 +19,8 @@ LiP-MS measures protein structural changes by detecting differences in protease 
 
 ```bash
 # Clone the repository and change into the project directory
-git clone https://github.com/andreasbachmann/LiP-MS-P2D.git
-cd lip-ms-p2d
+git clone https://github.com/gruber-sciencelab/LiP-MS-P2D.git
+cd LiP-MS-P2D
 
 # Create a new conda environment and activate it
 conda create -n lip-ms-p2d -c conda-forge --file requirements.txt
