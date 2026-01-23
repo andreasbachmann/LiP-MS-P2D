@@ -53,11 +53,11 @@ Test outputs will be in `test/results/`.
 2. **FASTA file**: Protein sequences for your organism (same one as used in Spectronaut)
 3. **Domain annotations**: From InterPro (see below)
 
-## Step 1: MSstatsLiP Preprocessing
+## Step 1: MSstatsLiP Processing
 
 ```bash
-# Edit paths in scripts/msstatslip_run.R, then run:
-Rscript scripts/msstatslip_run.R
+# Edit paths in scripts/msstatslip.R, then run:
+Rscript scripts/msstatslip.R
 ```
 
 **Inputs:**
