@@ -82,8 +82,45 @@ Rscript scripts/combine.R
 - `data/domain_annotations_consolidated.csv`: InterPro domains
 
 **Outputs:**
-- `results/domain_level_results_ebm.csv`: EBM aggregation results
-- `results/domain_level_results_cauchy.csv`: Cauchy aggregation results
 - `results/domain_level_results_ebm_dedup.csv`: Deduplicated EBM results
 - `results/domain_level_results_cauchy_dedup.csv`: Deduplicated Cauchy results
+- `results/domain_level_results_ebm_dedup_global.csv`: Global deduplicated EBM results
+- `results/domain_level_results_cauchy_dedup_global.csv`: Global deduplicated Cauchy results
 - `results/peptide_domain_mapping.csv`: Peptide-to-domain mapping details
+
+# Custom Domain Annotation
+
+A predefined domain annotation file for human proteins is provided for the analysis (in `data/domain_annotations_consolidated.csv`). However, if you work with another model organism, you can create your own custom domain annotation file as described below.
+
+## Step 1: Download Required Files
+
+**InterPro protein annotations**
+Download the `protein2ipr.dat.gz` from the InterPro FTP server:
+```bash
+wget https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/protein2ipr.dat.gz
+gunzip protein2ipr.dat.gz
+```
+Beware that this file contains domain annotations for all UniProtKB proteins and will be about 100GB unzipped. 
+
+**Organism-specific protein list:**
+Download your organism's proteome from UniProtKB. For example, for human (UP000005640), navigate to `https://www.uniprot.org/proteomes/UP000005640`, under Components, click on Download. Select .tsv as format and deselect all columns (under Customize columns) except for Entry Name. Then download and save that file under `data/`.
+
+## Step 2: Subset to Your Organism
+
+Filter the InterPro annotations to keep only proteins from your organism:
+```bash
+awk -F '\t' 'NR==FNR { proteins[$1]; next } $1 in proteins' \
+    your_organism_proteins.list protein2ipr.dat > protein_annotation_organism.tsv
+```
+
+## Step 3: Consolidate Overlapping Domains
+
+The raw InterPro file contains redundant entries because the same domain region is often annotated by multiple source databases (Pfam, SMART, PROSITE, etc.) with slightly different names/boundaries. The `cluster_domains.R` script merges these overlapping annotations.
+
+```bash
+Rscript scripts/cluster_domains.R \
+    --input protein_annotation_organism.tsv \
+    --output domain_annotations_consolidated.csv
+```
+
+The output file `domain_annotations_consolidated.csv` can be used directly as input for `combine.R`.
