@@ -56,7 +56,7 @@ Test outputs will be in `test/results/`.
 ## Step 1: MSstatsLiP Processing
 
 ```bash
-# Edit paths in scripts/msstatslip.R, then run:
+# Edit input paths in scripts/msstatslip.R, then run:
 Rscript scripts/msstatslip.R
 ```
 
@@ -94,8 +94,8 @@ A predefined domain annotation file for human proteins is provided for the analy
 
 ## Step 1: Download Required Files
 
-**InterPro protein annotations**
-Download the `protein2ipr.dat.gz` from the InterPro FTP server:
+**InterPro protein annotations:**
+Download the `protein2ipr.dat.gz` from the InterPro FTP server and save it under `data/`.
 ```bash
 wget https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/protein2ipr.dat.gz
 gunzip protein2ipr.dat.gz
@@ -110,17 +110,17 @@ Download your organism's proteome from UniProtKB. For example, for human (UP0000
 Filter the InterPro annotations to keep only proteins from your organism:
 ```bash
 awk -F '\t' 'NR==FNR { proteins[$1]; next } $1 in proteins' \
-    your_organism_proteins.list protein2ipr.dat > protein_annotation_organism.tsv
+    data/your_organism_proteins.list data/protein2ipr.dat > data/protein_annotation_organism.tsv
 ```
 
 ## Step 3: Consolidate Overlapping Domains
 
-The raw InterPro file contains redundant entries because the same domain region is often annotated by multiple source databases (Pfam, SMART, PROSITE, etc.) with slightly different names/boundaries. The `cluster_domains.R` script merges these overlapping annotations.
+The raw InterPro file contains redundant entries because the same domain region is often annotated by multiple source databases (Pfam, SMART, PROSITE, etc.) with slightly different names/boundaries. The `cluster_domains.R` script merges these overlapping annotations. Your first argument specifies the input, while the second argument specifies the output.
 
 ```bash
 Rscript scripts/cluster_domains.R \
-    --input protein_annotation_organism.tsv \
-    --output domain_annotations_consolidated.csv
+    data/protein_annotation_organism.tsv \
+    data/domain_annotations_consolidated.csv
 ```
 
 The output file `domain_annotations_consolidated.csv` can be used directly as input for `combine.R`.

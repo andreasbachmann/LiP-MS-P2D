@@ -117,7 +117,7 @@ cat(rep("=", 70), "\n\n", sep = "")
 
 # deduplicate EBM
 n_ebm_before <- nrow(result$ebm)
-result$ebm_dedup <- deduplicate_results(result$ebm)
+result$ebm_dedup <- deduplicate_results(result$ebm, global_mode = global_mode)
 n_ebm_after <- nrow(result$ebm_dedup)
 n_ebm_removed <- n_ebm_before - n_ebm_after
 pct_ebm_removed <- 100 * n_ebm_removed / n_ebm_before
@@ -129,7 +129,7 @@ cat(sprintf(" > removed: %d (%.1f%%)\n\n", n_ebm_removed, pct_ebm_removed))
 
 # deduplicate Cauchy
 n_cauchy_before <- nrow(result$cauchy)
-result$cauchy_dedup <- deduplicate_results(result$cauchy)
+result$cauchy_dedup <- deduplicate_results(result$cauchy, global_mode = global_mode)
 n_cauchy_after <- nrow(result$cauchy_dedup)
 n_cauchy_removed <- n_cauchy_before - n_cauchy_after
 pct_cauchy_removed <- 100 * n_cauchy_removed / n_cauchy_before
