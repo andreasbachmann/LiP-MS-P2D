@@ -1,8 +1,17 @@
 # main function aggregating peptide-level p-values to domain-level with Cauchy and EBM
 aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotations,
                               overlap_cutoff = 0.5, pval_cutoff = 0.05, fc_cutoff = 1,
-                              verbose = FALSE, impute = FALSE, save_mapping = FALSE, mapping_file = "") {
+                              verbose = FALSE, impute = FALSE, save_mapping = FALSE, mapping_file = "",
+                              aggregate_by = "domain_id") {
   
+  # validate aggregate_by parameter
+  if (!aggregate_by %in% c("domain_id", "domain_name")) {
+    stop("aggregate_by must be 'domain_id' or 'domain_name'")
+  }
+  
+  # set grouping column based on mode
+  group_col <- ifelse(aggregate_by == "domain_id", "DomainID", "DomainName")
+   
   # trypticity classification
   cat("Classifying trypticity...\n")
   peptide_results <- classify_trypticity(peptide_results)
@@ -36,21 +45,23 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
   n_total <- n_distinct(peptide_results$FULL_PEPTIDE)
   n_domains_mapped <- n_distinct(peptide_domain_mapping$DomainID)
 
+
   # peptides per domain distribution
   pep_per_domain <- peptide_domain_mapping %>%
-    count(DomainID)
+    group_by(across(all_of(group_col))) %>%
+    summarise(n = n(), .groups = "drop")
 
   # output mapping stats
   cat(sprintf(
-    " > peptides per domain: mean=%.1f, median=%d, max=%d\n",
-    mean(pep_per_domain$n), median(pep_per_domain$n), max(pep_per_domain$n)
+    " > peptides per %s: mean=%.1f, median=%d, max=%d\n",
+    group_col, mean(pep_per_domain$n), median(pep_per_domain$n), max(pep_per_domain$n)
   ))
   cat(sprintf(
     " > mapped %d / %d peptides (%.1f%% unmapped)\n",
     n_mapped, n_total, 100 * (n_total - n_mapped) / n_total
   ))
   cat(sprintf(
-    " > to %d / %d domains (%.1f%% without coverage)\n",
+    " > to %d / %d domain instances (%.1f%% without coverage)\n",
     n_domains_mapped, nrow(domain_annotations),
     100 * (nrow(domain_annotations) - n_domains_mapped) / nrow(domain_annotations)
   ))
@@ -71,7 +82,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
         log2FC, adj.pvalue,
         trypticity, StartPos, EndPos
       ) %>%
-      arrange(DomainID, Label, Direction)
+      arrange(across(all_of(group_col)), Label, Direction)
   
     fwrite(peptide_details, file = mapping_file)
     cat(sprintf(" > saved %d peptide x domain x contrast records\n\n", nrow(peptide_details)))
@@ -124,15 +135,23 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     # join pvalues with domain mapping
     contrast_peptides <- peptide_domain_mapping %>%
       inner_join(peptide_pvals, by = "FULL_PEPTIDE")
+
+    # get unique grouping units (DomainID or DomainName)
+    group_ids <- unique(contrast_peptides[[group_col]])
+    n_groups <- length(group_ids)
     
-    # metrics; get unique domains in current contrast, total peptide x domain matchings, (any domains lost, cause no pvalue?)
-    domain_ids <- unique(contrast_peptides$DomainID)
-    n_domains <- length(domain_ids)
-    domains_lost_no_pvals <- n_domains_mapped - n_domains
-    if (domains_lost_no_pvals > 0) {
-      cat(sprintf("%-42s %27s\n", " > domains lost:", domains_lost_no_pvals))
+    # metrics for lost groups
+    if (aggregate_by == "domain_id") {
+      groups_lost_no_pvals <- n_domains_mapped - n_groups
+    } else {
+      groups_lost_no_pvals <- n_distinct(peptide_domain_mapping$DomainName) - n_groups
     }
-    cat(sprintf("%-42s %27s\n", " > domains to process:", n_domains))
+    
+    if (groups_lost_no_pvals > 0) {
+      cat(sprintf("%-42s %27d\n", sprintf(" > %s lost:", group_col), groups_lost_no_pvals))
+    }
+    cat(sprintf("%-42s %27d\n", sprintf(" > %s to process:", group_col), n_groups))
+
 
     # prepare replicate data
     contrast_replicates <- replicate_data %>%
@@ -163,8 +182,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
       sprintf("(%.1f%%) %d / %d", pct_complete, n_complete_peptides, n_peptides_matrix)
     ))
 
-    # domain processing preparation
-    cat("Processing Domains...\n")
+    # processing preparation
+    cat(sprintf("Processing %ss...\n", group_col))
     results_by_domain_cauchy <- list()
     results_by_domain_ebm <- list()
 
@@ -202,60 +221,81 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     )
 
     # initialize progress bar
-    cat(sprintf(" > %5d/%5d - %s", 0, n_domains, create_progress_bar(0)))
+    cat(sprintf(" > %5d/%5d - %s", 0, n_groups, create_progress_bar(0)))
 
     ###############
     # DOMAIN LOOP #
     ###############
 
-    for (i in seq_along(domain_ids)) {
-      domain_id <- domain_ids[i]
+    for (i in seq_along(group_ids)) {
+      group_id <- group_ids[i]
 
       # print progress
-      if (runif(1) < 0.1 || i == n_domains || i == 1) {
-        cat(sprintf("\r > %5d/%5d - %s", i, n_domains, create_progress_bar(100 * i / n_domains)))
+      if (runif(1) < 0.1 || i == n_groups || i == 1) {
+        cat(sprintf("\r > %5d/%5d - %s", i, n_groups, create_progress_bar(100 * i / n_groups)))
       }
 
-      # get domain peptides
-      domain_peptides <- contrast_peptides %>%
-        filter(DomainID == domain_id)
+      # get peptides for this group
+      group_peptides <- contrast_peptides %>%
+        filter(.data[[group_col]] == group_id)
 
-      # peptide count in domain
-      n_peptides <- nrow(domain_peptides)
+      # peptide count in group
+      n_peptides <- nrow(group_peptides)
 
       # how many peptides?
-      # no valid peptides in domain
+      # no valid peptides
       if (n_peptides == 0) {
-        cat("No peptide in domain... This shouldn't happen.")
+        cat("No peptide in group... This shouldn't happen.")
         next
       }
+      
+      # change column contents based on aggregation mode
+      if (aggregate_by == "domain_name") {
+        representative_domain_name <- group_id
+        representative_protein_name <- paste0(
+          n_distinct(group_peptides$ProteinName), " proteins"
+        )
+        representative_domain_id <- paste0(
+          n_distinct(group_peptides$DomainID), " instances"
+        )
+      } else {
+        representative_domain_name <- group_peptides$DomainName[1]
+        representative_protein_name <- group_peptides$ProteinName[1]
+        representative_domain_id <- group_id
+      }
 
-      # single peptide in domain
+      # single peptide in group
       if (n_peptides == 1) {
         domain_stats$n_single_peptide <- domain_stats$n_single_peptide + 1
         direction_stats$n_total_instances <- direction_stats$n_total_instances + 1
         direction_stats$n_single_peptide <- direction_stats$n_single_peptide + 1
 
-        one_tailed_pval <- domain_peptides$adj.pvalue[1] / 2
-        direction <- ifelse(domain_peptides$log2FC[1] > 0, "UP", "DOWN")
+        one_tailed_pval <- group_peptides$adj.pvalue[1] / 2
+        direction <- ifelse(group_peptides$log2FC[1] > 0, "UP", "DOWN")
 
         # same result for both methods when single peptide
         single_result <- data.frame(
-          DomainID = domain_id,
-          DomainName = domain_peptides$DomainName[1],
-          ProteinName = domain_peptides$ProteinName[1],
+          DomainID = representative_domain_id,
+          DomainName = representative_domain_name,
+          ProteinName = representative_protein_name,
           Label = contrast,
           Direction = direction,
           n_peptides = 1,
           combined_pvalue = one_tailed_pval,
-          mean_log2FC = domain_peptides$log2FC[1],
-          median_log2FC = domain_peptides$log2FC[1],
+          mean_log2FC = group_peptides$log2FC[1],
+          median_log2FC = group_peptides$log2FC[1],
           method = "single_peptide",
           stringsAsFactors = FALSE
         )
+        
+        # add protein count for global mode
+        if (aggregate_by == "domain_name") {
+          single_result$n_proteins <- n_distinct(group_peptides$ProteinName)
+          single_result$n_domain_instances <- n_distinct(group_peptides$DomainID)
+        }
 
-        results_by_domain_ebm[[paste0(domain_id, "_", direction)]] <- single_result
-        results_by_domain_cauchy[[paste0(domain_id, "_", direction)]] <- single_result
+        results_by_domain_ebm[[paste0(group_id, "_", direction)]] <- single_result
+        results_by_domain_cauchy[[paste0(group_id, "_", direction)]] <- single_result
         next
       }
 
@@ -263,8 +303,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
       domain_stats$n_multi_peptide <- domain_stats$n_multi_peptide + 1
 
       # split peptides by direction
-      up_peptides <- domain_peptides %>% filter(log2FC > 0)
-      down_peptides <- domain_peptides %>% filter(log2FC < 0)
+      up_peptides <- group_peptides %>% filter(log2FC > 0)
+      down_peptides <- group_peptides %>% filter(log2FC < 0)
       n_up <- nrow(up_peptides)
       n_down <- nrow(down_peptides)
 
@@ -288,9 +328,9 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
           one_tailed_pval <- up_peptides$adj.pvalue[1] / 2
           single_up_result <- data.frame(
-            DomainID = domain_id,
-            DomainName = up_peptides$DomainName[1],
-            ProteinName = up_peptides$ProteinName[1],
+            DomainID = representative_domain_id,
+            DomainName = representative_domain_name,
+            ProteinName = representative_protein_name,
             Label = contrast,
             Direction = "UP",
             n_peptides = 1,
@@ -300,8 +340,14 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             method = "single_peptide",
             stringsAsFactors = FALSE
           )
-          results_by_domain_ebm[[paste0(domain_id, "_UP")]] <- single_up_result
-          results_by_domain_cauchy[[paste0(domain_id, "_UP")]] <- single_up_result
+          
+          if (aggregate_by == "domain_name") {
+            single_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
+            single_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
+          }
+          
+          results_by_domain_ebm[[paste0(group_id, "_UP")]] <- single_up_result
+          results_by_domain_cauchy[[paste0(group_id, "_UP")]] <- single_up_result
 
           # multi-peptide UP
         } else if (n_up >= 2) {
@@ -314,7 +360,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             replicate_data = contrast_replicates,
             direction = "UP",
             verbose = verbose,
-            domain_id = domain_id
+            domain_id = group_id
           )
 
           if (!is.null(ebm_result_up$status)) {
@@ -343,10 +389,11 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
             if (ebm_result_up$status == "success") {
               ebm_stats$n_success <- ebm_stats$n_success + 1
-              results_by_domain_ebm[[paste0(domain_id, "_UP")]] <- data.frame(
-                DomainID = domain_id,
-                DomainName = up_peptides$DomainName[1],
-                ProteinName = up_peptides$ProteinName[1],
+              
+              ebm_up_result <- data.frame(
+                DomainID = representative_domain_id,
+                DomainName = representative_domain_name,
+                ProteinName = representative_protein_name,
                 Label = contrast,
                 Direction = "UP",
                 n_peptides = n_up,
@@ -356,6 +403,13 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 method = "EBM",
                 stringsAsFactors = FALSE
               )
+              
+              if (aggregate_by == "domain_name") {
+                ebm_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
+                ebm_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
+              }
+              
+              results_by_domain_ebm[[paste0(group_id, "_UP")]] <- ebm_up_result
             } else {
               ebm_stats[[paste0("n_failed_", ebm_result_up$status)]] <-
                 ebm_stats[[paste0("n_failed_", ebm_result_up$status)]] + 1
@@ -370,10 +424,10 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               cauchy_combined_up <- ACAT(up_pvals_one_tailed)
               cauchy_stats$n_success <- cauchy_stats$n_success + 1
 
-              results_by_domain_cauchy[[paste0(domain_id, "_UP")]] <- data.frame(
-                DomainID = domain_id,
-                DomainName = up_peptides$DomainName[1],
-                ProteinName = up_peptides$ProteinName[1],
+              cauchy_up_result <- data.frame(
+                DomainID = representative_domain_id,
+                DomainName = representative_domain_name,
+                ProteinName = representative_protein_name,
                 Label = contrast,
                 Direction = "UP",
                 n_peptides = n_up,
@@ -383,11 +437,18 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 method = "cauchy",
                 stringsAsFactors = FALSE
               )
+              
+              if (aggregate_by == "domain_name") {
+                cauchy_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
+                cauchy_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
+              }
+              
+              results_by_domain_cauchy[[paste0(group_id, "_UP")]] <- cauchy_up_result
             },
             error = function(e) {
               cauchy_stats$n_failed <- cauchy_stats$n_failed + 1
               if (verbose) {
-                cat(sprintf(" > domain %s UP: cauchy error: %s\n", domain_id, e$message))
+                cat(sprintf(" > %s %s UP: cauchy error: %s\n", group_col, group_id, e$message))
               }
             }
           )
@@ -405,9 +466,9 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
           one_tailed_pval <- down_peptides$adj.pvalue[1] / 2
           single_down_result <- data.frame(
-            DomainID = domain_id,
-            DomainName = down_peptides$DomainName[1],
-            ProteinName = down_peptides$ProteinName[1],
+            DomainID = representative_domain_id,
+            DomainName = representative_domain_name,
+            ProteinName = representative_protein_name,
             Label = contrast,
             Direction = "DOWN",
             n_peptides = 1,
@@ -417,8 +478,14 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             method = "single_peptide",
             stringsAsFactors = FALSE
           )
-          results_by_domain_ebm[[paste0(domain_id, "_DOWN")]] <- single_down_result
-          results_by_domain_cauchy[[paste0(domain_id, "_DOWN")]] <- single_down_result
+          
+          if (aggregate_by == "domain_name") {
+            single_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
+            single_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
+          }
+          
+          results_by_domain_ebm[[paste0(group_id, "_DOWN")]] <- single_down_result
+          results_by_domain_cauchy[[paste0(group_id, "_DOWN")]] <- single_down_result
 
           # multi-peptide DOWN
         } else if (n_down >= 2) {
@@ -431,7 +498,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             replicate_data = contrast_replicates,
             direction = "DOWN",
             verbose = verbose,
-            domain_id = domain_id
+            domain_id = group_id
           )
 
           if (!is.null(ebm_result_down$status)) {
@@ -458,10 +525,11 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
             if (ebm_result_down$status == "success") {
               ebm_stats$n_success <- ebm_stats$n_success + 1
-              results_by_domain_ebm[[paste0(domain_id, "_DOWN")]] <- data.frame(
-                DomainID = domain_id,
-                DomainName = down_peptides$DomainName[1],
-                ProteinName = down_peptides$ProteinName[1],
+              
+              ebm_down_result <- data.frame(
+                DomainID = representative_domain_id,
+                DomainName = representative_domain_name,
+                ProteinName = representative_protein_name,
                 Label = contrast,
                 Direction = "DOWN",
                 n_peptides = n_down,
@@ -471,6 +539,13 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 method = "EBM",
                 stringsAsFactors = FALSE
               )
+              
+              if (aggregate_by == "domain_name") {
+                ebm_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
+                ebm_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
+              }
+              
+              results_by_domain_ebm[[paste0(group_id, "_DOWN")]] <- ebm_down_result
             } else {
               ebm_stats[[paste0("n_failed_", ebm_result_down$status)]] <-
                 ebm_stats[[paste0("n_failed_", ebm_result_down$status)]] + 1
@@ -485,10 +560,10 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               cauchy_combined_down <- ACAT(down_pvals_one_tailed)
               cauchy_stats$n_success <- cauchy_stats$n_success + 1
 
-              results_by_domain_cauchy[[paste0(domain_id, "_DOWN")]] <- data.frame(
-                DomainID = domain_id,
-                DomainName = down_peptides$DomainName[1],
-                ProteinName = down_peptides$ProteinName[1],
+              cauchy_down_result <- data.frame(
+                DomainID = representative_domain_id,
+                DomainName = representative_domain_name,
+                ProteinName = representative_protein_name,
                 Label = contrast,
                 Direction = "DOWN",
                 n_peptides = n_down,
@@ -498,6 +573,13 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
                 method = "cauchy",
                 stringsAsFactors = FALSE
               )
+              
+              if (aggregate_by == "domain_name") {
+                cauchy_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
+                cauchy_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
+              }
+              
+              results_by_domain_cauchy[[paste0(group_id, "_DOWN")]] <- cauchy_down_result
             },
             error = function(e) {
               cauchy_stats$n_failed <- cauchy_stats$n_failed + 1
@@ -508,7 +590,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     }
 
     # contrast summary
-    cat("\n\nDomain-Level Breakdown...\n")
+    cat("\n\n")
+    cat(sprintf("%s-Level Breakdown...\n", group_col))
     cat(sprintf("%-42s %27d\n", " > single peptide:", domain_stats$n_single_peptide))
     cat(sprintf("%-42s %27d\n", " > multi peptide:", domain_stats$n_multi_peptide))
     cat(sprintf("%-42s %27d\n", "  > only up:", domain_stats$n_up_only))
@@ -559,8 +642,6 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
         cat(sprintf("   %-39s %27s\n", sample, sprintf("(%5.1f%%) %5d", pct_of_total, sample_counts[[sample]])))
       }
     }
-
-    # cat(sprintf("%-42s %27s\n", "  > failed because less than two peptides:", ebm_stats$n_failed_less_than_two))
 
     # cauchy summary
     cat("\nCauchy Breakdown...\n")

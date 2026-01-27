@@ -5,6 +5,10 @@
 # parse command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
 test_mode <- "--test" %in% args
+global_mode <- "--global" %in% args
+
+# set mode suffix
+mode_suffix <- ifelse(global_mode, "_global", "")
 
 # set directory, input, output files and parameters
 if (test_mode) {
@@ -13,11 +17,11 @@ if (test_mode) {
   msstatslip_model_file <- "test/results/test_adjusted_lip_model.csv"
   replicate_file <- "test/results/test_summarized_lip_data.csv"
 
-  cauchy_output_file <- "test/results/test_domain_level_results_cauchy.csv"
-  ebm_output_file <- "test/results/test_domain_level_results_ebm.csv"
-  cauchy_dedup_file <- "test/results/test_domain_level_results_cauchy_dedup.csv"
-  ebm_dedup_file <- "test/results/test_domain_level_results_ebm_dedup.csv"
-  mapping_file <- "test/results/test_peptide_domain_mapping.csv"
+  cauchy_output_file <- paste0("test/results/test_domain_level_results_cauchy", mode_suffix, ".csv")
+  ebm_output_file <- paste0("test/results/test_domain_level_results_ebm", mode_suffix, ".csv")
+  cauchy_dedup_file <- paste0("test/results/test_domain_level_results_cauchy_dedup", mode_suffix, ".csv")
+  ebm_dedup_file <- paste0("test/results/test_domain_level_results_ebm_dedup", mode_suffix, ".csv")
+  mapping_file <- paste0("test/results/test_peptide_domain_mapping", mode_suffix, ".csv")
 
   log_dir <- "test/logs"
 
@@ -31,17 +35,17 @@ if (test_mode) {
   domain_annotations_file <- "data/domain_annotations_consolidated.csv"
   replicate_file <- "results/summarized_lip_data.csv"
 
-  cauchy_output_file <- "results/domain_level_results_cauchy.csv"
-  ebm_output_file <- "results/domain_level_results_ebm.csv"
-  cauchy_dedup_file <- "results/domain_level_results_cauchy_dedup.csv"
-  ebm_dedup_file <- "results/domain_level_results_ebm_dedup.csv"
-  mapping_file <- "results/peptide_domain_mapping.csv"
+  cauchy_output_file <- paste0("results/domain_level_results_cauchy", mode_suffix, ".csv")
+  ebm_output_file <- paste0("results/domain_level_results_ebm", mode_suffix, ".csv")
+  cauchy_dedup_file <- paste0("results/domain_level_results_cauchy_dedup", mode_suffix, ".csv")
+  ebm_dedup_file <- paste0("results/domain_level_results_ebm_dedup", mode_suffix, ".csv")
+  mapping_file <- paste0("results/peptide_domain_mapping", mode_suffix, ".csv")
 
   log_dir <- "logs"
 }
 
 # setup logs
-log_file <- file.path(log_dir, paste0("combineR_run_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
+log_file <- file.path(log_dir, paste0("combineR_run", mode_suffix, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 sink(log_file, split = TRUE)
 
 # initiate start time
@@ -49,8 +53,13 @@ script_start <- Sys.time()
 
 # print header
 cat("\n")
-cat("Domain-Level p-value Aggregation using Cauchy & EBM\n")
+if (global_mode) {
+  cat("Domain-Level p-value Aggregation (GLOBAL MODE: by DomainName)\n")
+} else {
+  cat("Domain-Level p-value Aggregation (by DomainID)\n")
+}
 cat(rep("=", 70), "\n\n", sep = "")
+
 
 # read libraries
 cat("Loading required libraries...\n")
@@ -73,7 +82,7 @@ tryCatch(
 )
 
 # read functions
-source("R/aggregate_pvalues.R")
+source("R/aggregate_pvalues_alt.R")
 source("R/classify_trypticity.R")
 source("R/deduplicate.R")
 source("R/map_peptides_to_domains.R")
@@ -89,11 +98,14 @@ cat(sprintf("%-20s %25s\n", " > domains as", domain_annotations_file))
 replicate_data <- fread(replicate_file)
 cat(sprintf("%-20s %25s\n\n", " > replicates as", replicate_file))
 
-# run aggregation
+# run aggregation with appropriate mode
+aggregate_by <- ifelse(global_mode, "domain_name", "domain_id")
+
 result <- aggregate_pvalues(
   peptide_results,
   replicate_data,
   domain_annotations,
+  aggregate_by = aggregate_by,
   save_mapping = TRUE,
   mapping_file = mapping_file
 )
@@ -105,7 +117,7 @@ cat(rep("=", 70), "\n\n", sep = "")
 
 # deduplicate EBM
 n_ebm_before <- nrow(result$ebm)
-result$ebm_dedup <- deduplicate_results(result$ebm)
+result$ebm_dedup <- deduplicate_results(result$ebm, global_mode = global_mode)
 n_ebm_after <- nrow(result$ebm_dedup)
 n_ebm_removed <- n_ebm_before - n_ebm_after
 pct_ebm_removed <- 100 * n_ebm_removed / n_ebm_before
@@ -117,7 +129,7 @@ cat(sprintf(" > removed: %d (%.1f%%)\n\n", n_ebm_removed, pct_ebm_removed))
 
 # deduplicate Cauchy
 n_cauchy_before <- nrow(result$cauchy)
-result$cauchy_dedup <- deduplicate_results(result$cauchy)
+result$cauchy_dedup <- deduplicate_results(result$cauchy, global_mode = global_mode)
 n_cauchy_after <- nrow(result$cauchy_dedup)
 n_cauchy_removed <- n_cauchy_before - n_cauchy_after
 pct_cauchy_removed <- 100 * n_cauchy_removed / n_cauchy_before
@@ -135,11 +147,11 @@ cat(rep("=", 70), "\n\n", sep = "")
 total_elapsed <- as.numeric(difftime(Sys.time(), script_start, units = "secs"))
 cat(sprintf("Total run time: %.1f seconds (%.1f minutes)\n\n", total_elapsed, total_elapsed / 60))
 
-# save raw results
-# fwrite(result$cauchy, cauchy_output_file)
-# cat("Saved Cauchy results as", cauchy_output_file, "\n")
-# fwrite(result$ebm, ebm_output_file)
-# cat("Saved EBM results as", ebm_output_file, "\n")
+# save normal results
+fwrite(result$cauchy, cauchy_output_file)
+cat("Saved Cauchy results as", cauchy_output_file, "\n")
+fwrite(result$ebm, ebm_output_file)
+cat("Saved EBM results as", ebm_output_file, "\n")
 
 # save deduplicated results
 fwrite(result$cauchy_dedup, cauchy_dedup_file)
