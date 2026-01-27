@@ -11,9 +11,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
   
   # set grouping column based on mode
   group_col <- ifelse(aggregate_by == "domain_id", "DomainID", "DomainName")
-  
-  cat(sprintf("Aggregation mode: %s (grouping by %s)\n\n", aggregate_by, group_col))
-  
+   
   # trypticity classification
   cat("Classifying trypticity...\n")
   peptide_results <- classify_trypticity(peptide_results)
@@ -226,7 +224,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     cat(sprintf(" > %5d/%5d - %s", 0, n_groups, create_progress_bar(0)))
 
     ###############
-    # GROUP LOOP  #
+    # DOMAIN LOOP #
     ###############
 
     for (i in seq_along(group_ids)) {
