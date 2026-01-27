@@ -1,6 +1,8 @@
 # ignore large files
 data/*
 !data/test/
+!data/domain_annotations_consolidated.csv
+!data/unique_RBDs.tsv
 
 # ignore log files
 *.log
