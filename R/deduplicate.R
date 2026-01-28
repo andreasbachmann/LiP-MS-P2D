@@ -1,10 +1,10 @@
-# groups by identical statistics (same p-value, log2FC, n_peptides = same peptides)
+# groups by identical statistics (same p-value, log2FC, n_peptides, ... = same peptides)
 # keep shortest domain name as representative
 deduplicate_results <- function(results, global_mode = FALSE) {
   if (global_mode) {
     # global mode
     deduped <- results %>%
-      group_by(DomainID, Label, Direction, mean_log2FC, median_log2FC, combined_pvalue, n_peptides) %>%
+      group_by(Label, Direction, mean_log2FC, median_log2FC, combined_pvalue, n_peptides) %>%
       summarize(
         DomainName = DomainName[which.min(nchar(DomainName))],
         DomainID = first(DomainID),
