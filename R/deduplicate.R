@@ -4,7 +4,7 @@ deduplicate_results <- function(results, global_mode = FALSE) {
   if (global_mode) {
     # global mode
     deduped <- results %>%
-      group_by(Label, Direction, mean_log2FC, median_log2FC, combined_pvalue, n_peptides) %>%
+      group_by(DomainID, Label, Direction, mean_log2FC, median_log2FC, combined_pvalue, n_peptides) %>%
       summarize(
         DomainName = DomainName[which.min(nchar(DomainName))],
         DomainID = first(DomainID),
@@ -13,6 +13,11 @@ deduplicate_results <- function(results, global_mode = FALSE) {
         n_proteins = first(n_proteins),
         n_domain_instances = first(n_domain_instances),
         .groups = "drop"
+      ) %>%
+      select(
+        DomainName, ProteinName, Label, Direction, n_peptides,
+        combined_pvalue, mean_log2FC, median_log2FC, method,
+        n_proteins, n_domain_instances
       )
   } else {
     # instance mode
@@ -23,6 +28,10 @@ deduplicate_results <- function(results, global_mode = FALSE) {
         DomainID = first(DomainID),
         method = first(method),
         .groups = "drop"
+      ) %>%
+      select(
+        DomainID, DomainName, ProteinName, Label, Direction, n_peptides,
+        combined_pvalue, mean_log2FC, median_log2FC, method
       )
   }
 

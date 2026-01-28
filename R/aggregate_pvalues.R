@@ -288,8 +288,9 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           stringsAsFactors = FALSE
         )
         
-        # add protein count for global mode
+        # change columns for global mode
         if (aggregate_by == "domain_name") {
+          single_result$ProteinName <- paste(unique(group_peptides$ProteinName), collapse = ";")
           single_result$n_proteins <- n_distinct(group_peptides$ProteinName)
           single_result$n_domain_instances <- n_distinct(group_peptides$DomainID)
         }
@@ -342,6 +343,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           )
           
           if (aggregate_by == "domain_name") {
+            single_up_result$ProteinName <- paste(unique(up_peptides$ProteinName), collapse = ";")
             single_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
             single_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
           }
@@ -405,6 +407,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               )
               
               if (aggregate_by == "domain_name") {
+                ebm_up_result$ProteinName <- paste(unique(up_peptides$ProteinName), collapse = ";")
                 ebm_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
                 ebm_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
               }
@@ -439,6 +442,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               )
               
               if (aggregate_by == "domain_name") {
+                cauchy_up_result$ProteinName <- paste(unique(up_peptides$ProteinName), collapse = ";")
                 cauchy_up_result$n_proteins <- n_distinct(up_peptides$ProteinName)
                 cauchy_up_result$n_domain_instances <- n_distinct(up_peptides$DomainID)
               }
@@ -480,6 +484,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           )
           
           if (aggregate_by == "domain_name") {
+            single_down_result$ProteinName <- paste(unique(down_peptides$ProteinName), collapse = ";")
             single_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
             single_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
           }
@@ -541,6 +546,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               )
               
               if (aggregate_by == "domain_name") {
+                ebm_down_result$ProteinName <- paste(unique(down_peptides$ProteinName), collapse = ";")
                 ebm_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
                 ebm_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
               }
@@ -575,6 +581,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
               )
               
               if (aggregate_by == "domain_name") {
+                cauchy_down_result$ProteinName <- paste(unique(down_peptides$ProteinName), collapse = ";")
                 cauchy_down_result$n_proteins <- n_distinct(down_peptides$ProteinName)
                 cauchy_down_result$n_domain_instances <- n_distinct(down_peptides$DomainID)
               }
