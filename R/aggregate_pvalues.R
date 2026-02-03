@@ -270,7 +270,6 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
         direction_stats$n_total_instances <- direction_stats$n_total_instances + 1
         direction_stats$n_single_peptide <- direction_stats$n_single_peptide + 1
 
-        one_tailed_pval <- group_peptides$adj.pvalue[1] / 2
         direction <- ifelse(group_peptides$log2FC[1] > 0, "UP", "DOWN")
 
         # same result for both methods when single peptide
@@ -281,7 +280,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           Label = contrast,
           Direction = direction,
           n_peptides = 1,
-          combined_pvalue = one_tailed_pval,
+          combined_pvalue = group_peptides$adj.pvalue[1],
           mean_log2FC = group_peptides$log2FC[1],
           median_log2FC = group_peptides$log2FC[1],
           method = "single_peptide",
@@ -327,7 +326,6 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
         if (n_up == 1) {
           direction_stats$n_single_peptide <- direction_stats$n_single_peptide + 1
 
-          one_tailed_pval <- up_peptides$adj.pvalue[1] / 2
           single_up_result <- data.frame(
             DomainID = representative_domain_id,
             DomainName = representative_domain_name,
@@ -335,7 +333,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             Label = contrast,
             Direction = "UP",
             n_peptides = 1,
-            combined_pvalue = one_tailed_pval,
+            combined_pvalue = up_peptides$adj.pvalue[1],
             mean_log2FC = up_peptides$log2FC[1],
             median_log2FC = up_peptides$log2FC[1],
             method = "single_peptide",
@@ -423,8 +421,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           cauchy_stats$n_attempted <- cauchy_stats$n_attempted + 1
           tryCatch(
             {
-              up_pvals_one_tailed <- up_peptides$adj.pvalue / 2
-              cauchy_combined_up <- ACAT(up_pvals_one_tailed)
+              up_pvals <- up_peptides$adj.pvalue
+              cauchy_combined_up <- ACAT(up_pvals)
               cauchy_stats$n_success <- cauchy_stats$n_success + 1
 
               cauchy_up_result <- data.frame(
@@ -468,7 +466,6 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
         if (n_down == 1) {
           direction_stats$n_single_peptide <- direction_stats$n_single_peptide + 1
 
-          one_tailed_pval <- down_peptides$adj.pvalue[1] / 2
           single_down_result <- data.frame(
             DomainID = representative_domain_id,
             DomainName = representative_domain_name,
@@ -476,7 +473,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
             Label = contrast,
             Direction = "DOWN",
             n_peptides = 1,
-            combined_pvalue = one_tailed_pval,
+            combined_pvalue = down_peptides$adj.pvalue[1],
             mean_log2FC = down_peptides$log2FC[1],
             median_log2FC = down_peptides$log2FC[1],
             method = "single_peptide",
@@ -562,8 +559,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
           cauchy_stats$n_attempted <- cauchy_stats$n_attempted + 1
           tryCatch(
             {
-              down_pvals_one_tailed <- down_peptides$adj.pvalue / 2
-              cauchy_combined_down <- ACAT(down_pvals_one_tailed)
+              down_pvals <- down_peptides$adj.pvalue
+              cauchy_combined_down <- ACAT(down_pvals)
               cauchy_stats$n_success <- cauchy_stats$n_success + 1
 
               cauchy_down_result <- data.frame(

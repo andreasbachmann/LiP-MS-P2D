@@ -41,7 +41,7 @@ process_direction_ebm <- function(peptides, replicate_data, direction,
 	peptides <- peptides %>% filter(FULL_PEPTIDE %in% available_peptides)
 
 	# order pvalues to match matrix
-	pvals_ordered <- peptides$adj.pvalue[match(available_peptides, peptides$FULL_PEPTIDE)] / 2
+	pvals_ordered <- peptides$adj.pvalue[match(available_peptides, peptides$FULL_PEPTIDE)]
 
 	# run EBM
 	tryCatch({
