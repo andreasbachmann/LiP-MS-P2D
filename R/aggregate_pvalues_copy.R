@@ -29,18 +29,6 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
   cat(sprintf(" > Kept %d semi-tryptic peptides for analysis\n\n", nrow(peptide_results)))
 
-  #####################
-  # ONE-TAILED P-VALUES
-  cat("Calculating one-tailed p-values from t-statistics...\n")
-  peptide_results <- peptide_results %>%
-    mutate(
-      p_right = pt(Tvalue, df = DF, lower.tail = FALSE),
-      p_left = pt(Tvalue, df = DF, lower.tail = TRUE)
-    )
-
-  n_valid_t <- sum(!is.na(peptide_results$Tvalue) & !is.na(peptide_results$DF))
-  cat(sprintf(" > Computed one-tailed p-values for %d peptides\n\n", n_valid_t))
-
   ################
   # DOMAIN MAPPING
   cat("Mapping peptides to domains...\n")
@@ -73,7 +61,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     peptide_details <- peptide_domain_mapping %>%
       inner_join(
         peptide_results %>%
-          select(FULL_PEPTIDE, Label, log2FC, adj.pvalue, p_right, p_left, trypticity),
+          select(FULL_PEPTIDE, Label, log2FC, adj.pvalue, trypticity),
         by = "FULL_PEPTIDE",
         relationship = "many-to-many"
       ) %>%
@@ -101,12 +89,20 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
     conditions <- trimws(strsplit(contrast, " vs ")[[1]])
 
-    #################
-    # FILTER PEPTIDES
+    #####################
+    # FILTER & ONE-TAILED
     peptide_pvals <- peptide_results %>%
       filter(Label == contrast) %>%
       filter(FULL_PEPTIDE %in% mapped_peptides) %>%
-      filter(!is.na(log2FC), is.finite(log2FC), !is.na(p_right), !is.na(p_left)) %>%
+      filter(
+        !is.na(log2FC), is.finite(log2FC),
+        !is.na(Tvalue), is.finite(Tvalue),
+        !is.na(DF), is.finite(DF)
+      ) %>%
+      mutate(
+        p_right = pt(Tvalue, df = DF, lower.tail = FALSE),
+        p_left = pt(Tvalue, df = DF, lower.tail = TRUE)
+      ) %>%
       select(FULL_PEPTIDE, log2FC, adj.pvalue, p_right, p_left, Tvalue, DF, trypticity)
 
     cat(sprintf(" > Valid peptides: %d\n", nrow(peptide_pvals)))
@@ -117,7 +113,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
     group_ids <- unique(contrast_peptides[[group_col]])
     n_groups <- length(group_ids)
-    cat(sprintf(" > %s to process: %d\n", group_col, n_groups))
+    cat(sprintf(" > %ss to process: %d\n", group_col, n_groups))
 
     ##################
     # REPLICATE MATRIX
@@ -148,16 +144,19 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     contrast_results_ebm <- list()
     contrast_results_cauchy <- list()
 
-    cat(sprintf("Processing %s...\n", group_col))
+    cat(sprintf("Processing %ss...\n", group_col))
+
+    # initialize progress bar
+    cat(sprintf(" > %5d/%5d - %s", 0, n_groups, create_progress_bar(0)))
 
     #############
     # DOMAIN LOOP
     for (i in seq_along(group_ids)) {
       group_id <- group_ids[i]
 
-      # progress bar
-      if (i %% 500 == 0 || i == n_groups) {
-        cat(sprintf("\r > %5d / %5d (%.0f%%)", i, n_groups, 100 * i / n_groups))
+      # print progress
+      if (runif(1) < 0.1 || i == n_groups || i == 1) {
+        cat(sprintf("\r > %5d/%5d - %s", i, n_groups, create_progress_bar(100 * i / n_groups)))
       }
 
       # get peptides for this domain
@@ -405,7 +404,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     ))
   }
 
-  cat("\n Peptide to Domain Aggregation completed!\n")
+  cat("\nPeptide to Domain Aggregation completed!\n")
 
   return(list(
     ebm = final_ebm,
