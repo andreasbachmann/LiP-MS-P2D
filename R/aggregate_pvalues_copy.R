@@ -97,7 +97,8 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
       filter(
         !is.na(log2FC), is.finite(log2FC),
         !is.na(Tvalue), is.finite(Tvalue),
-        !is.na(DF), is.finite(DF)
+        !is.na(DF), is.finite(DF),
+        DF > 0
       ) %>%
       mutate(
         p_right = pt(Tvalue, df = DF, lower.tail = FALSE),
