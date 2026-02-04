@@ -61,9 +61,18 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     peptide_details <- peptide_domain_mapping %>%
       inner_join(
         peptide_results %>%
-          select(FULL_PEPTIDE, Label, log2FC, adj.pvalue, trypticity),
+          select(FULL_PEPTIDE, Label, log2FC, adj.pvalue, Tvalue, DF, trypticity),
         by = "FULL_PEPTIDE",
         relationship = "many-to-many"
+      ) %>%
+      filter(
+        !is.na(Tvalue), is.finite(Tvalue),
+        !is.na(DF), is.finite(DF),
+        DF > 0
+      ) %>%
+      mutate(
+        p_right = pt(Tvalue, df = DF, lower.tail = FALSE),
+        p_left = pt(Tvalue, df = DF, lower.tail = TRUE)
       ) %>%
       arrange(across(all_of(group_col)), Label)
 
@@ -114,7 +123,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
 
     group_ids <- unique(contrast_peptides[[group_col]])
     n_groups <- length(group_ids)
-    cat(sprintf(" > %ss to process: %d\n", group_col, n_groups))
+    cat(sprintf(" > Domains to process: %d\n", n_groups))
 
     ##################
     # REPLICATE MATRIX
@@ -145,7 +154,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     contrast_results_ebm <- list()
     contrast_results_cauchy <- list()
 
-    cat(sprintf("Processing %ss...\n", group_col))
+    cat("Processing domains...\n")
 
     # initialize progress bar
     cat(sprintf(" > %5d/%5d - %s", 0, n_groups, create_progress_bar(0)))
