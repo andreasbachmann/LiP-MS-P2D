@@ -365,14 +365,14 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
       100 * stats$ebm_success / max(stats$ebm_attempted, 1)
     ))
 
-    cat(sprintf(" > domains failed (< 2 complete):    %d (%.1f%%)\n", stats$ebm_failed, 100 * stats$ebm_failed / max(stats$ebm_attempted, 1)))
+    cat(sprintf(" > domains failed (< 2 complete): %d (%.1f%%)\n", stats$ebm_failed, 100 * stats$ebm_failed / max(stats$ebm_attempted, 1)))
 
     cat(sprintf(
-      " > domains using all peptides:  %d (%.1f%%)\n",
+      " > domains using all peptides: %d (%.1f%%)\n",
       stats$ebm_full, 100 * stats$ebm_full / max(stats$ebm_success, 1)
     ))
     cat(sprintf(
-      " > domains dropping some peptides:   %d (%.1f%%)\n",
+      " > domains dropping some peptides: %d (%.1f%%)\n",
       stats$ebm_reduced, 100 * stats$ebm_reduced / max(stats$ebm_success, 1)
     ))
 
