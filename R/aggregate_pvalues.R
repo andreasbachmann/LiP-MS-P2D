@@ -54,7 +54,7 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
     n_mapped, n_total_pep, 100 * (n_total_pep - n_mapped) / n_total_pep
   ))
   cat(sprintf(" > To %d domain instances\n", n_domains_mapped))
-  cat(sprintf(" > Total peptide-domain links: %d\n\n", nrow(peptide_domain_mapping)))
+  cat(sprintf(" > Total peptide-domain links: %d\n", nrow(peptide_domain_mapping)))
 
   # optionally save mapping
   if (save_mapping && mapping_file != "") {
@@ -365,25 +365,24 @@ aggregate_pvalues <- function(peptide_results, replicate_data, domain_annotation
       100 * stats$ebm_success / max(stats$ebm_attempted, 1)
     ))
 
+    cat(sprintf(" > domains failed (< 2 complete):    %d (%.1f%%)\n", stats$ebm_failed, 100 * stats$ebm_failed / max(stats$ebm_attempted, 1)))
+
+    cat(sprintf(
+      " > domains using all peptides:  %d (%.1f%%)\n",
+      stats$ebm_full, 100 * stats$ebm_full / max(stats$ebm_success, 1)
+    ))
+    cat(sprintf(
+      " > domains dropping some peptides:   %d (%.1f%%)\n",
+      stats$ebm_reduced, 100 * stats$ebm_reduced / max(stats$ebm_success, 1)
+    ))
+
+
     cat(sprintf(
       "Cauchy: %d/%d successful (%.1f%%)\n\n",
       stats$cauchy_success, stats$cauchy_attempted,
       100 * stats$cauchy_success / max(stats$cauchy_attempted, 1)
     ))
 
-    cat(sprintf(
-      "\nEBM peptide usage (among %d successful multi-peptide):\n",
-      stats$ebm_success
-    ))
-    cat(sprintf(
-      " > Full (all peptides used):  %d (%.1f%%)\n",
-      stats$ebm_full, 100 * stats$ebm_full / max(stats$ebm_success, 1)
-    ))
-    cat(sprintf(
-      " > Reduced (some dropped):   %d (%.1f%%)\n",
-      stats$ebm_reduced, 100 * stats$ebm_reduced / max(stats$ebm_success, 1)
-    ))
-    cat(sprintf(" > Failed (< 2 complete):    %d\n", stats$ebm_failed))
 
     # store results
     if (length(contrast_results_ebm) > 0) {
