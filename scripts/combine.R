@@ -86,7 +86,6 @@ source("R/aggregate_pvalues.R")
 source("R/classify_trypticity.R")
 source("R/deduplicate.R")
 source("R/map_peptides_to_domains.R")
-source("R/process_direction_ebm.R")
 source("R/progress_bar.R")
 
 # read files
