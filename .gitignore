@@ -15,5 +15,5 @@ results/*
 test/results/*
 !test/results/.gitkeep
 
-# ignore tmp
-figures.R
+# ignore wip
+thesis/*
