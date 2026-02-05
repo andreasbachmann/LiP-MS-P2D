@@ -39,7 +39,7 @@ if (test_mode) {
   ebm_output_file <- paste0("results/domain_level_results_ebm", mode_suffix, ".csv")
   cauchy_dedup_file <- paste0("results/domain_level_results_cauchy_dedup", mode_suffix, ".csv")
   ebm_dedup_file <- paste0("results/domain_level_results_ebm_dedup", mode_suffix, ".csv")
-  mapping_file <- paste0("results/peptide_domain_mapping", mode_suffix, ".csv")
+  mapping_file <- paste0("results/peptide_domain_mapping.csv")
 
   log_dir <- "logs"
 }
