@@ -124,3 +124,35 @@ Rscript scripts/cluster_domains.R \
 ```
 
 The output file `domain_annotations_consolidated.csv` can be used directly as input for `combine.R`.
+
+
+# RNA-binding domain Compilation
+
+To test if domains are enriched in RNA-binding, a list of RNA-binding domains has been compiled from multiple sources.
+
+## Input Files
+
+| File | Description | Source |
+|------|-------------|--------|
+| `protein_annotation_human.tsv` | Human protein domain annotations from InterPro | Generated in the domain annotation step |
+| `interpro2go` | InterPro to Gene Ontology mapping | [InterPro FTP](https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/) |
+| `Search_Results_InterPro.csv` | RNA-binding domain annotations | Exported from [RBP2GO](https://rbp2gov2.dkfz.de/) |
+
+## Sources
+
+1. **Keyword search**: The human domain annotations were searched for entries matching RNA-related terms (e.g. 'RNA recognition motif', 'RNA-binding', 'RRM', 'DNA/RNA-binding'). Domains belonging to the InterPro RNA binding superfamily (IPR035979) were also manually included.
+
+2. **InterPro2GO mapping**: The InterPro2GO file was downloaded from the [InterPro FTP server](https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/). All InterPro entries annotated with the GO term 'RNA binding' were extracted.
+
+3. **RBP2GO database**: Curated RNA-binding domain identifiers were obtained from [RBP2GO](https://rbp2go.dkfz.de/) (Herger et al., 2021) and combined with the InterPro-based annotations.
+
+## Usage
+```bash
+# Step 1: Compile InterPro-based RNA-binding domain IDs
+bash scripts/compile_RNAbindingIDs.sh
+
+# Step 2: Combine with RBP2GO annotations and deduplicate
+Rscript scripts/combine_RNAs.R
+```
+
+The final deduplicated list (`unique_rbd.tsv`) is used to check whether a domain hit is an RNA-binding domain or not.
