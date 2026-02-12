@@ -155,4 +155,4 @@ bash scripts/compile_RNAbindingIDs.sh
 Rscript scripts/combine_RNAs.R
 ```
 
-The final deduplicated list (`unique_rbd.tsv`) is used to check whether a domain hit is an RNA-binding domain or not.
+The final deduplicated list (`unique_rbd.tsv`) is used to check if a domain hit is an RNA-binding domain for the Fisher's exact test.

@@ -1,6 +1,9 @@
 # method_agreement.R
 # analyze agreement between CCT and EBM
 
+# install missing packages if needed
+if (!require("viridis", quietly = TRUE)) install.packages("viridis")
+
 # libraries
 library(ggplot2)
 library(dplyr)

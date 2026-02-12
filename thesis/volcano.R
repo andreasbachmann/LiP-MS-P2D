@@ -1,6 +1,10 @@
 # volcano.R
 # creates volcano plot for domain-level results
 
+# install missing packages if needed
+if (!require("patchwork", quietly = TRUE)) install.packages("patchwork")
+if (!require("ggrepel", quietly = TRUE)) install.packages("ggrepel")
+
 # libraries
 library(dplyr)
 library(tidyr)

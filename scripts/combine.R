@@ -146,11 +146,11 @@ cat(rep("=", 70), "\n\n", sep = "")
 total_elapsed <- as.numeric(difftime(Sys.time(), script_start, units = "secs"))
 cat(sprintf("Total run time: %.1f seconds (%.1f minutes)\n\n", total_elapsed, total_elapsed / 60))
 
-# save normal results
-fwrite(result$cauchy, cauchy_output_file)
-cat("Saved Cauchy results as", cauchy_output_file, "\n")
-fwrite(result$ebm, ebm_output_file)
-cat("Saved EBM results as", ebm_output_file, "\n")
+# save non-deduplicated results
+# fwrite(result$cauchy, cauchy_output_file)
+# cat("Saved Cauchy results as", cauchy_output_file, "\n")
+# fwrite(result$ebm, ebm_output_file)
+# cat("Saved EBM results as", ebm_output_file, "\n")
 
 # save deduplicated results
 fwrite(result$cauchy_dedup, cauchy_dedup_file)

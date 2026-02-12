@@ -10,6 +10,9 @@ data/*
 # ignore real output
 results/*
 !results/.gitkeep
+!results/domain_level_results_ebm_dedup.csv
+!results/domain_level_results_cauchy_dedup.csv
+!results/peptide_domain_mapping.csv
 
 # ignore test output
 test/results/*

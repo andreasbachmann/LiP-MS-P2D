@@ -1,6 +1,10 @@
 # peptide_maps_top_hits.R
 # check top hits and generate peptide maps
 
+# install missing packages if needed
+if (!require("patchwork", quietly = TRUE)) install.packages("patchwork")
+if (!require("ggrepel", quietly = TRUE)) install.packages("ggrepel")
+
 # load libraries
 library(dplyr)
 library(ggplot2)
